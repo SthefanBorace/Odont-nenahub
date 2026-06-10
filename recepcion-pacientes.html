@@ -1,0 +1,769 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Recepción de pacientes · Mariana Spiegel</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,500;12..96,600;12..96,700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet" />
+<style>
+  :root{
+    --ink:#16242B;
+    --ink-soft:#5C6E76;
+    --ink-faint:#90A0A6;
+    --bg:#F3F6F5;
+    --surface:#FFFFFF;
+    --line:#E2E9E7;
+    --teal:#0F9AA6;
+    --teal-deep:#0A6E78;
+    --mint:#E6F3F2;
+    --coral:#FF6B53;
+    --coral-soft:#FFE9E3;
+    --ok:#15875A;
+    --ok-soft:#E3F3EB;
+    --shadow:0 1px 2px rgba(16,40,45,.04), 0 8px 24px rgba(16,40,45,.06);
+    --shadow-lg:0 4px 12px rgba(16,40,45,.08), 0 24px 48px rgba(16,40,45,.10);
+    --radius:16px;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html{scroll-behavior:smooth}
+  body{
+    font-family:'Inter',system-ui,sans-serif;
+    background:var(--bg);
+    color:var(--ink);
+    line-height:1.55;
+    -webkit-font-smoothing:antialiased;
+  }
+  h1,h2,h3,.display{font-family:'Bricolage Grotesque',sans-serif;letter-spacing:-.02em;line-height:1.05}
+  .mono{font-family:'JetBrains Mono',monospace}
+  a{color:inherit}
+  button{font-family:inherit;cursor:pointer;border:none;background:none}
+  img{display:block;max-width:100%}
+
+  /* ---------- view switcher ---------- */
+  .switcher{
+    position:fixed;top:14px;right:14px;z-index:80;
+    display:flex;align-items:center;gap:4px;
+    background:rgba(22,36,43,.92);backdrop-filter:blur(8px);
+    padding:5px;border-radius:999px;box-shadow:var(--shadow-lg);
+  }
+  .switcher span{font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:#9FB2B6;padding:0 8px 0 12px}
+  .switcher button{
+    color:#C9D6D8;font-size:12.5px;font-weight:600;
+    padding:7px 14px;border-radius:999px;transition:.18s;white-space:nowrap;
+  }
+  .switcher button.active{background:var(--teal);color:#fff}
+
+  .view{display:none;animation:fade .4s ease both}
+  .view.active{display:block}
+  @keyframes fade{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+
+  .wrap{max-width:1080px;margin:0 auto;padding:0 24px}
+
+  /* ---------- patient: top bar ---------- */
+  .topbar{padding:22px 0;display:flex;align-items:center;justify-content:space-between;gap:16px}
+  .brand{display:flex;align-items:center;gap:11px}
+  .brand .mark{
+    width:38px;height:38px;border-radius:11px;background:var(--ink);
+    display:grid;place-items:center;color:#fff;flex-shrink:0;
+  }
+  .brand .mark svg{width:20px;height:20px}
+  .brand b{font-family:'Bricolage Grotesque';font-weight:700;font-size:15px;display:block;line-height:1.1}
+  .brand small{font-size:11.5px;color:var(--ink-soft);letter-spacing:.02em}
+  .topbar .tag{font-size:12px;color:var(--ink-soft);display:flex;align-items:center;gap:7px}
+  .dot{width:7px;height:7px;border-radius:50%;background:var(--ok);box-shadow:0 0 0 3px var(--ok-soft)}
+
+  /* ---------- patient: hero ---------- */
+  .hero{padding:30px 0 18px;display:grid;grid-template-columns:1fr 1fr;gap:48px;align-items:center}
+  .hero .eyebrow{
+    display:inline-flex;align-items:center;gap:8px;font-size:12px;font-weight:600;
+    color:var(--teal-deep);background:var(--mint);padding:6px 13px;border-radius:999px;margin-bottom:20px;
+  }
+  .hero h1{font-size:clamp(32px,4.6vw,52px);font-weight:700;margin-bottom:16px}
+  .hero h1 em{font-style:normal;color:var(--teal)}
+  .hero p.lead{font-size:17px;color:var(--ink-soft);max-width:38ch}
+  .hero .micro{margin-top:22px;display:flex;gap:22px;flex-wrap:wrap}
+  .hero .micro div{font-size:13px;color:var(--ink-soft)}
+  .hero .micro b{display:block;font-family:'Bricolage Grotesque';font-size:21px;color:var(--ink);font-weight:600;letter-spacing:-.01em}
+
+  /* ---------- the case file (signature element) ---------- */
+  .casefile{position:relative}
+  .casefile .tab{
+    position:absolute;top:-14px;left:24px;
+    background:var(--coral);color:#fff;font-size:11px;font-weight:600;
+    letter-spacing:.08em;text-transform:uppercase;padding:5px 14px;border-radius:8px 8px 0 0;
+  }
+  .casefile .card{
+    background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);
+    box-shadow:var(--shadow-lg);padding:26px 26px 22px;
+  }
+  .casefile .code{font-size:11.5px;color:var(--ink-faint);letter-spacing:.04em;margin-bottom:4px}
+  .casefile h3{font-size:23px;font-weight:600;margin-bottom:14px}
+  .casefile .crit{list-style:none;display:flex;flex-direction:column;gap:10px;margin:16px 0 4px;border-top:1px solid var(--line);padding-top:16px}
+  .casefile .crit li{display:flex;gap:10px;font-size:14px;color:var(--ink-soft);align-items:flex-start}
+  .casefile .crit svg{width:17px;height:17px;color:var(--teal);flex-shrink:0;margin-top:2px}
+  .casefile .perk{
+    margin-top:16px;background:var(--mint);border-radius:11px;padding:12px 14px;
+    font-size:13.5px;color:var(--teal-deep);display:flex;gap:9px;align-items:center;
+  }
+  .casefile .perk svg{width:18px;height:18px;flex-shrink:0}
+
+  /* ---------- how it works ---------- */
+  .steps{padding:46px 0 8px}
+  .steps h2{font-size:13px;text-transform:uppercase;letter-spacing:.1em;color:var(--ink-faint);font-weight:600;font-family:'Inter';margin-bottom:22px}
+  .steprow{display:grid;grid-template-columns:repeat(3,1fr);gap:20px}
+  .step{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:22px}
+  .step .n{font-family:'Bricolage Grotesque';font-size:13px;font-weight:700;color:var(--teal);margin-bottom:10px}
+  .step h4{font-size:16px;font-weight:600;margin-bottom:6px;font-family:'Bricolage Grotesque'}
+  .step p{font-size:13.5px;color:var(--ink-soft)}
+
+  /* ---------- form ---------- */
+  .formsec{padding:48px 0 70px}
+  .formcard{
+    background:var(--surface);border:1px solid var(--line);border-radius:22px;
+    box-shadow:var(--shadow);max-width:680px;margin:0 auto;overflow:hidden;
+  }
+  .formcard .head{padding:28px 30px 22px;border-bottom:1px solid var(--line)}
+  .formcard .head h2{font-size:26px;font-weight:700;margin-bottom:6px}
+  .formcard .head p{font-size:14.5px;color:var(--ink-soft)}
+  .formbody{padding:26px 30px 30px;display:flex;flex-direction:column;gap:20px}
+  .field label{display:block;font-size:13px;font-weight:600;margin-bottom:7px}
+  .field label .opt{color:var(--ink-faint);font-weight:400}
+  .field input[type=text],.field input[type=tel],.field textarea{
+    width:100%;padding:12px 14px;border:1px solid var(--line);border-radius:11px;
+    font-family:inherit;font-size:14.5px;color:var(--ink);background:#FBFCFC;transition:.15s;
+  }
+  .field input:focus,.field textarea:focus{outline:none;border-color:var(--teal);background:#fff;box-shadow:0 0 0 3px var(--mint)}
+  .field textarea{resize:vertical;min-height:84px}
+  .row2{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+
+  .check{display:flex;gap:12px;align-items:flex-start;background:var(--mint);border:1px solid #CFE7E5;border-radius:13px;padding:14px 16px;cursor:pointer}
+  .check input{margin-top:3px;width:18px;height:18px;accent-color:var(--teal);flex-shrink:0;cursor:pointer}
+  .check span{font-size:13.5px;color:var(--teal-deep)}
+  .check b{display:block;font-size:14px;color:var(--ink);margin-bottom:1px}
+
+  /* image upload */
+  .drop{
+    border:1.5px dashed var(--line);border-radius:13px;padding:22px;text-align:center;
+    cursor:pointer;transition:.15s;background:#FBFCFC;
+  }
+  .drop:hover{border-color:var(--teal);background:var(--mint)}
+  .drop svg{width:26px;height:26px;color:var(--ink-faint);margin:0 auto 8px}
+  .drop b{font-size:14px;display:block}
+  .drop small{font-size:12px;color:var(--ink-faint)}
+  .preview{display:none;align-items:center;gap:14px;background:#FBFCFC;border:1px solid var(--line);border-radius:13px;padding:12px}
+  .preview.show{display:flex}
+  .preview img{width:60px;height:60px;border-radius:9px;object-fit:cover}
+  .preview .meta{flex:1;min-width:0}
+  .preview .meta b{font-size:13.5px;display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .preview .meta small{font-size:12px;color:var(--ink-faint)}
+  .preview button{color:var(--coral);font-size:13px;font-weight:600;padding:6px 10px}
+
+  /* slots */
+  .slots{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px}
+  .slot{
+    border:1px solid var(--line);border-radius:11px;padding:11px 13px;text-align:left;
+    background:#FBFCFC;transition:.15s;
+  }
+  .slot:hover{border-color:var(--teal)}
+  .slot.sel{border-color:var(--teal);background:var(--mint);box-shadow:0 0 0 2px var(--mint)}
+  .slot .d{font-size:13.5px;font-weight:600;display:block}
+  .slot .t{font-size:12.5px;color:var(--ink-soft)}
+  .slot.sel .t{color:var(--teal-deep)}
+
+  .submit{
+    background:var(--ink);color:#fff;font-size:15px;font-weight:600;
+    padding:15px;border-radius:13px;width:100%;transition:.18s;
+    display:flex;align-items:center;justify-content:center;gap:9px;
+  }
+  .submit:hover{background:var(--teal-deep)}
+  .submit:disabled{opacity:.45;cursor:not-allowed}
+  .formnote{font-size:12px;color:var(--ink-faint);text-align:center}
+
+  /* success */
+  .success{display:none;padding:54px 36px;text-align:center}
+  .success.show{display:block}
+  .success .ico{width:64px;height:64px;border-radius:50%;background:var(--ok-soft);color:var(--ok);display:grid;place-items:center;margin:0 auto 20px}
+  .success .ico svg{width:30px;height:30px}
+  .success h2{font-size:27px;font-weight:700;margin-bottom:10px}
+  .success p{font-size:15px;color:var(--ink-soft);max-width:40ch;margin:0 auto 20px}
+  .success button{color:var(--teal-deep);font-weight:600;font-size:14px}
+
+  /* ---------- ADMIN / CRM ---------- */
+  .admin-bg{background:#EEF2F1;min-height:100vh}
+  .admin-top{background:var(--surface);border-bottom:1px solid var(--line);position:sticky;top:0;z-index:30}
+  .admin-top .wrap{display:flex;align-items:center;justify-content:space-between;padding-top:18px;padding-bottom:18px;gap:16px}
+  .admin-top h1{font-size:19px;font-weight:700}
+  .admin-top h1 small{display:block;font-family:'Inter';font-size:12px;color:var(--ink-soft);font-weight:400;letter-spacing:0}
+  .admin-who{display:flex;align-items:center;gap:10px;font-size:13px;color:var(--ink-soft)}
+  .avatar{width:34px;height:34px;border-radius:50%;background:var(--teal);color:#fff;display:grid;place-items:center;font-weight:600;font-size:13px;font-family:'Bricolage Grotesque'}
+
+  .stats{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;padding:24px 0 6px}
+  .stat{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:16px 18px}
+  .stat b{font-family:'Bricolage Grotesque';font-size:30px;font-weight:700;display:block;letter-spacing:-.02em}
+  .stat span{font-size:12.5px;color:var(--ink-soft)}
+  .stat.s-pend b{color:var(--coral)}
+  .stat.s-ok b{color:var(--ok)}
+
+  .filterbar{display:flex;gap:8px;padding:20px 0 16px;flex-wrap:wrap;align-items:center}
+  .filterbar .fbtn{font-size:13px;font-weight:600;color:var(--ink-soft);padding:8px 15px;border-radius:999px;border:1px solid var(--line);background:var(--surface);transition:.15s}
+  .filterbar .fbtn.active{background:var(--ink);color:#fff;border-color:var(--ink)}
+  .filterbar .count{margin-left:auto;font-size:12.5px;color:var(--ink-faint)}
+
+  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(330px,1fr));gap:16px;padding-bottom:60px}
+  .cand{
+    background:var(--surface);border:1px solid var(--line);border-radius:16px;overflow:hidden;
+    display:flex;flex-direction:column;transition:.2s;
+  }
+  .cand:hover{box-shadow:var(--shadow-lg);transform:translateY(-2px)}
+  .cand.done{opacity:.78}
+  .cand-img{position:relative;aspect-ratio:16/10;background:#DCE6E4 url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" fill="none" stroke="%23A9BCBA" stroke-width="1.5"><path d="M20 7c-4 0-5 2-8 2S7 8 6 12c-1 5 2 16 5 16 2 0 2-5 4-5s2 5 4 5"/></svg>') center/40px no-repeat;cursor:pointer}
+  .cand-img img{width:100%;height:100%;object-fit:cover}
+  .cand-img .casecode{position:absolute;top:10px;left:10px;background:rgba(22,36,43,.86);color:#fff;font-size:10.5px;letter-spacing:.04em;padding:4px 9px;border-radius:7px}
+  .cand-img .zoom{position:absolute;bottom:10px;right:10px;background:rgba(255,255,255,.92);width:30px;height:30px;border-radius:8px;display:grid;place-items:center;opacity:0;transition:.15s}
+  .cand-img:hover .zoom{opacity:1}
+  .cand-img .zoom svg{width:15px;height:15px;color:var(--ink)}
+  .cand-body{padding:16px 17px;display:flex;flex-direction:column;gap:12px;flex:1}
+  .cand-name{display:flex;align-items:center;justify-content:space-between;gap:10px}
+  .cand-name b{font-family:'Bricolage Grotesque';font-size:17px;font-weight:600}
+  .badge{font-size:11px;font-weight:600;padding:4px 9px;border-radius:999px;white-space:nowrap}
+  .badge.pend{background:var(--coral-soft);color:#C2412C}
+  .badge.ok{background:var(--ok-soft);color:var(--ok)}
+  .cand-meta{display:flex;flex-direction:column;gap:8px;font-size:13px}
+  .cand-meta .mrow{display:flex;gap:9px;align-items:flex-start;color:var(--ink-soft)}
+  .cand-meta .mrow svg{width:15px;height:15px;flex-shrink:0;margin-top:2px;color:var(--ink-faint)}
+  .cand-meta .mrow.date{color:var(--ink);font-weight:500}
+  .cand-msg{font-size:13px;color:var(--ink-soft);background:#F6F9F8;border-radius:10px;padding:10px 12px;font-style:italic}
+  .cand-foot{margin-top:auto;padding-top:4px;display:flex;gap:8px}
+  .btn-confirm{flex:1;background:var(--teal);color:#fff;font-size:13.5px;font-weight:600;padding:11px;border-radius:10px;transition:.15s;display:flex;align-items:center;justify-content:center;gap:7px}
+  .btn-confirm:hover{background:var(--teal-deep)}
+  .btn-wa{background:#fff;border:1px solid var(--line);color:var(--ink-soft);font-size:13px;font-weight:600;padding:11px 13px;border-radius:10px;display:flex;align-items:center;gap:6px;transition:.15s}
+  .btn-wa:hover{border-color:var(--teal);color:var(--teal-deep)}
+  .btn-wa svg{width:15px;height:15px}
+  .cand-confirmed{margin-top:auto;background:var(--ok-soft);color:var(--ok);border-radius:10px;padding:11px;font-size:13px;font-weight:600;display:flex;align-items:center;gap:8px;justify-content:center}
+  .cand-confirmed svg{width:16px;height:16px}
+
+  .empty{text-align:center;padding:70px 20px;color:var(--ink-faint)}
+  .empty svg{width:40px;height:40px;margin:0 auto 14px;opacity:.5}
+
+  /* lightbox + toast + modal */
+  .lightbox{position:fixed;inset:0;background:rgba(16,28,33,.82);z-index:90;display:none;place-items:center;padding:30px;cursor:zoom-out}
+  .lightbox.show{display:grid}
+  .lightbox img{max-width:90vw;max-height:88vh;border-radius:12px;box-shadow:var(--shadow-lg)}
+
+  .toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(120%);z-index:95;background:var(--ink);color:#fff;padding:13px 20px;border-radius:12px;font-size:14px;display:flex;align-items:center;gap:10px;box-shadow:var(--shadow-lg);transition:transform .35s cubic-bezier(.2,.8,.2,1)}
+  .toast.show{transform:translateX(-50%) translateY(0)}
+  .toast svg{width:18px;height:18px;color:#5FE0A8}
+
+  .modal{position:fixed;inset:0;background:rgba(16,28,33,.55);z-index:92;display:none;place-items:center;padding:24px}
+  .modal.show{display:grid;animation:fade .2s both}
+  .modal-card{background:#fff;border-radius:18px;max-width:380px;width:100%;overflow:hidden;box-shadow:var(--shadow-lg)}
+  .modal-head{padding:20px 22px;border-bottom:1px solid var(--line);display:flex;align-items:center;gap:11px}
+  .modal-head .wa-ico{width:36px;height:36px;border-radius:10px;background:#25D366;display:grid;place-items:center;flex-shrink:0}
+  .modal-head .wa-ico svg{width:20px;height:20px;color:#fff}
+  .modal-head b{font-size:15px;display:block}
+  .modal-head small{font-size:12.5px;color:var(--ink-soft)}
+  .modal-body{padding:20px 22px}
+  .wa-bubble{background:#DCF8C6;border-radius:12px 12px 12px 4px;padding:12px 14px;font-size:13.5px;color:#1B3A24;white-space:pre-wrap}
+  .modal-body .to{font-size:12px;color:var(--ink-faint);margin-bottom:10px}
+  .modal-foot{padding:0 22px 22px;display:flex;gap:9px}
+  .modal-foot button{flex:1;padding:11px;border-radius:10px;font-size:13.5px;font-weight:600}
+  .modal-foot .secondary{background:#F1F4F3;color:var(--ink-soft)}
+  .modal-foot .primary{background:#25D366;color:#fff;display:flex;align-items:center;justify-content:center;gap:7px;text-decoration:none}
+
+  footer{border-top:1px solid var(--line);padding:24px 0;font-size:12px;color:var(--ink-faint);text-align:center}
+
+  @media(max-width:860px){
+    .hero{grid-template-columns:1fr;gap:30px}
+    .steprow{grid-template-columns:1fr}
+    .stats{grid-template-columns:1fr 1fr 1fr;gap:10px}
+    .stat b{font-size:24px}
+  }
+  @media(max-width:560px){
+    .wrap{padding:0 18px}
+    .row2{grid-template-columns:1fr}
+    .switcher span{display:none}
+    .formbody{padding:22px}
+    .formcard .head{padding:24px 22px 20px}
+  }
+</style>
+</head>
+<body>
+
+<!-- demo view switcher -->
+<div class="switcher">
+  <span>Demo</span>
+  <button id="tabPatient" class="active" onclick="setView('patient')">Vista paciente</button>
+  <button id="tabAdmin" onclick="setView('admin')">Panel de Mariana</button>
+</div>
+
+<!-- ============== PATIENT VIEW ============== -->
+<div id="patientView" class="view active">
+  <div class="wrap">
+    <div class="topbar">
+      <div class="brand">
+        <div class="mark">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5c-2.5-1.5-4.5-1-6 .5C4 7.5 4.5 12 6 16c.8 2.2 1.4 3 2.2 3 .9 0 1-1.4 1.3-3 .2-1.2.6-2 2.5-2s2.3.8 2.5 2c.3 1.6.4 3 1.3 3 .8 0 1.4-.8 2.2-3 1.5-4 2-8.5 0-10.5-1.5-1.5-3.5-2-6-.5"/></svg>
+        </div>
+        <div>
+          <b>Mariana Spiegel</b>
+          <small>Práctica clínica odontológica</small>
+        </div>
+      </div>
+      <div class="tag"><span class="dot"></span> Recibiendo postulaciones</div>
+    </div>
+
+    <!-- HERO + CASE FILE -->
+    <section class="hero">
+      <div>
+        <span class="eyebrow">◦ Convocatoria del semestre</span>
+        <h1>¿Tienes este caso? <em>Tu tratamiento, mi práctica.</em></h1>
+        <p class="lead">Soy estudiante de odontología y este semestre busco pacientes con un diagnóstico específico para mi práctica clínica supervisada. Postúlate y yo te confirmo la cita.</p>
+        <div class="micro">
+          <div><b>Sin costo</b>Atención supervisada por docentes</div>
+          <div><b>Clínica universitaria</b>Equipo y protocolos completos</div>
+        </div>
+      </div>
+
+      <!-- SIGNATURE: case file -->
+      <div class="casefile">
+        <div class="tab">Caso buscado</div>
+        <div class="card">
+          <div class="code mono" id="caseCode">CASO · 2026-1 · OPD-03</div>
+          <h3 id="caseTitle">Operatoria dental — caries en molares</h3>
+          <ul class="crit">
+            <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg> Caries visible en dientes posteriores (molares o premolares).</li>
+            <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg> Sin tratamiento de conducto previo en esa pieza.</li>
+            <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg> Disponibilidad de 1 a 2 horas en horario de clínica.</li>
+          </ul>
+          <div class="perk">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 8v4l2.5 1.5"/></svg>
+            Tratamiento sin costo a cambio de tu tiempo en la cita.
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- STEPS -->
+    <section class="steps">
+      <h2>Cómo funciona</h2>
+      <div class="steprow">
+        <div class="step"><div class="n mono">01</div><h4>Postúlate</h4><p>Sube una foto de la zona o tu radiografía, deja tu mensaje y tu número.</p></div>
+        <div class="step"><div class="n mono">02</div><h4>Elige fecha</h4><p>Marca las fechas disponibles que mejor te funcionen para la cita.</p></div>
+        <div class="step"><div class="n mono">03</div><h4>Te confirmo</h4><p>Reviso los casos y le escribo a la persona seleccionada para confirmar.</p></div>
+      </div>
+    </section>
+
+    <!-- FORM -->
+    <section class="formsec">
+      <div class="formcard">
+        <div id="formInner">
+          <div class="head">
+            <h2>Postúlate como paciente</h2>
+            <p>Toda la información va directo a Mariana. Solo ella la ve.</p>
+          </div>
+          <div class="formbody">
+
+            <label class="check">
+              <input type="checkbox" id="fMatch" />
+              <span><b>Me identifico con este caso</b>Tengo caries en molares / premolares o un diagnóstico parecido.</span>
+            </label>
+
+            <div class="row2">
+              <div class="field">
+                <label>Nombre</label>
+                <input type="text" id="fName" placeholder="Tu nombre" />
+              </div>
+              <div class="field">
+                <label>Teléfono / WhatsApp</label>
+                <input type="tel" id="fPhone" placeholder="6XXX-XXXX" />
+              </div>
+            </div>
+
+            <div class="field">
+              <label>Foto de prueba o radiografía <span class="opt">— opcional pero ayuda</span></label>
+              <div class="drop" id="dropZone">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="m17 8-5-5-5 5"/><path d="M12 3v12"/></svg>
+                <b>Toca para subir una imagen</b>
+                <small>JPG o PNG. La imagen no se publica, solo la ve Mariana.</small>
+              </div>
+              <input type="file" id="fImage" accept="image/*" hidden />
+              <div class="preview" id="imgPreview">
+                <img id="previewThumb" alt="" />
+                <div class="meta"><b id="previewName">imagen.jpg</b><small id="previewSize"></small></div>
+                <button onclick="clearImage()">Quitar</button>
+              </div>
+            </div>
+
+            <div class="field">
+              <label>Mensaje <span class="opt">— cuéntame tu caso</span></label>
+              <textarea id="fMsg" placeholder="Ej: Tengo una muela picada del lado derecho, me molesta al comer dulce..."></textarea>
+            </div>
+
+            <div class="field">
+              <label>Fechas que te funcionarían <span class="opt">— elige las que puedas</span></label>
+              <div class="slots" id="slotGrid"></div>
+            </div>
+
+            <button class="submit" id="submitBtn" onclick="submitLead()" disabled>
+              Enviar postulación
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:18px;height:18px"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+            </button>
+            <p class="formnote">No es una cita confirmada. Mariana revisa los casos y te escribe si quedas seleccionado/a.</p>
+          </div>
+        </div>
+
+        <!-- success -->
+        <div class="success" id="formSuccess">
+          <div class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg></div>
+          <h2>¡Postulación recibida!</h2>
+          <p>Mariana ya tiene tu caso en su lista. Si te selecciona, te escribirá al número que dejaste para confirmar la fecha.</p>
+          <button onclick="resetForm()">Enviar otra postulación</button>
+        </div>
+      </div>
+    </section>
+  </div>
+  <footer>Demo de sistema de recepción de pacientes · Hecho para Mariana Spiegel</footer>
+</div>
+
+<!-- ============== ADMIN / CRM VIEW ============== -->
+<div id="adminView" class="view admin-bg">
+  <div class="admin-top">
+    <div class="wrap">
+      <h1>Candidatos a paciente <small>Caso 2026-1 · OPD-03 — Operatoria dental</small></h1>
+      <div class="admin-who">
+        <span>Mariana Spiegel</span>
+        <div class="avatar">MS</div>
+      </div>
+    </div>
+  </div>
+  <div class="wrap">
+    <div class="stats">
+      <div class="stat"><b id="stTotal">0</b><span>Postulaciones</span></div>
+      <div class="stat s-pend"><b id="stPend">0</b><span>Por revisar</span></div>
+      <div class="stat s-ok"><b id="stOk">0</b><span>Citas confirmadas</span></div>
+    </div>
+
+    <div class="filterbar">
+      <button class="fbtn active" data-f="all" onclick="setFilter('all')">Todos</button>
+      <button class="fbtn" data-f="pend" onclick="setFilter('pend')">Por revisar</button>
+      <button class="fbtn" data-f="ok" onclick="setFilter('ok')">Confirmados</button>
+      <span class="count" id="filterCount"></span>
+    </div>
+
+    <div class="grid" id="candGrid"></div>
+  </div>
+</div>
+
+<!-- overlays -->
+<div class="lightbox" id="lightbox" onclick="this.classList.remove('show')"><img id="lightboxImg" alt="" /></div>
+<div class="toast" id="toast"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg><span id="toastMsg"></span></div>
+
+<div class="modal" id="confirmModal">
+  <div class="modal-card">
+    <div class="modal-head">
+      <div class="wa-ico"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2a10 10 0 0 0-8.7 15l-1.3 4.7 4.8-1.3A10 10 0 1 0 12 2zm0 18a8 8 0 0 1-4.1-1.1l-.3-.2-2.8.7.8-2.7-.2-.3A8 8 0 1 1 12 20zm4.4-6c-.2-.1-1.4-.7-1.6-.8s-.4-.1-.5.1-.6.8-.7.9-.3.2-.5.1a6.5 6.5 0 0 1-3.2-2.8c-.2-.4.2-.4.6-1.2.1-.1 0-.3 0-.4l-.7-1.7c-.2-.5-.4-.4-.5-.4h-.5a1 1 0 0 0-.7.3 3 3 0 0 0-.9 2.2 5.2 5.2 0 0 0 1.1 2.7 11.8 11.8 0 0 0 4.5 4c2.1.8 2.1.5 2.5.5a2.7 2.7 0 0 0 1.8-1.3 2.2 2.2 0 0 0 .2-1.3c-.1-.1-.2-.2-.4-.3z"/></svg></div>
+      <div><b>Confirmar y enviar mensaje</b><small id="modalTo">a +507 ...</small></div>
+    </div>
+    <div class="modal-body">
+      <div class="to">Mensaje que se enviará:</div>
+      <div class="wa-bubble" id="modalMsg"></div>
+    </div>
+    <div class="modal-foot">
+      <button class="secondary" onclick="closeModal()">Cancelar</button>
+      <a class="primary" id="modalSend" href="#" target="_blank" onclick="finalizeConfirm()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" style="width:16px;height:16px"><path d="M5 12h14M13 6l6 6-6 6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        Confirmar
+      </a>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ============================================================
+   CONFIG — edita aquí el caso de cada semestre
+   ============================================================ */
+const CASE = {
+  code: "CASO · 2026-1 · OPD-03",
+  shortCode: "OPD-03",
+  title: "Operatoria dental — caries en molares"
+};
+
+const STORE_KEY = "recepcion:candidatos";
+
+/* ---- almacenamiento (persistente si está disponible; si no, memoria) ---- */
+let candidates = [];
+let hasStorage = typeof window.storage !== "undefined";
+
+async function loadCandidates(){
+  if(hasStorage){
+    try{
+      const r = await window.storage.get(STORE_KEY, true);
+      candidates = r && r.value ? JSON.parse(r.value) : null;
+    }catch(e){ candidates = null; }
+  }
+  if(!candidates){ candidates = seedData(); await saveCandidates(); }
+}
+async function saveCandidates(){
+  if(!hasStorage) return;
+  try{ await window.storage.set(STORE_KEY, JSON.stringify(candidates), true); }catch(e){}
+}
+
+/* ---- datos de ejemplo para que el panel no esté vacío en la demo ---- */
+function seedData(){
+  const base = Date.now();
+  return [
+    { id:"c1", nombre:"Carlos M.", telefono:"6612-3344", caso:CASE.shortCode,
+      mensaje:"Tengo una muela picada abajo a la derecha, me molesta con lo dulce. Puedo en las mañanas.",
+      fecha:"Lun 16 jun · 9:00 am", imagen:null, estado:"pendiente", createdAt:base-8600000 },
+    { id:"c2", nombre:"Yariela G.", telefono:"6098-7712", caso:CASE.shortCode,
+      mensaje:"Creo que tengo caries en dos molares, nunca me han hecho conducto. Tengo radiografía reciente.",
+      fecha:"Mar 17 jun · 2:00 pm", imagen:null, estado:"pendiente", createdAt:base-5200000 },
+    { id:"c3", nombre:"Luis F.", telefono:"6745-1029", caso:CASE.shortCode,
+      mensaje:"Me dijeron que necesito una resina. Disponible toda la semana en la tarde.",
+      fecha:"Jue 19 jun · 10:00 am", imagen:null, estado:"pendiente", createdAt:base-1200000 }
+  ];
+}
+
+/* ============================================================
+   VIEW SWITCH
+   ============================================================ */
+function setView(v){
+  document.getElementById("patientView").classList.toggle("active", v==="patient");
+  document.getElementById("adminView").classList.toggle("active", v==="admin");
+  document.getElementById("tabPatient").classList.toggle("active", v==="patient");
+  document.getElementById("tabAdmin").classList.toggle("active", v==="admin");
+  if(v==="admin") renderAdmin();
+  window.scrollTo(0,0);
+}
+
+/* ============================================================
+   PATIENT FORM
+   ============================================================ */
+const sel = id => document.getElementById(id);
+let chosenSlots = [];
+let imageData = null;
+
+// build available slots relative to today
+function buildSlots(){
+  const grid = sel("slotGrid");
+  const dias = ["dom","lun","mar","mié","jue","vie","sáb"];
+  const meses = ["ene","feb","mar","abr","may","jun","jul","ago","sep","oct","nov","dic"];
+  const times = ["9:00 am","11:00 am","2:00 pm","4:00 pm"];
+  const out = [];
+  let d = new Date(); let added=0; let offset=1;
+  while(added<6){
+    const day = new Date(d.getTime()+offset*86400000);
+    if(day.getDay()!==0){ // skip sundays
+      const label = `${cap(dias[day.getDay()])} ${day.getDate()} ${meses[day.getMonth()]}`;
+      const t = times[added % times.length];
+      out.push(`${label} · ${t}`);
+      added++;
+    }
+    offset++;
+  }
+  grid.innerHTML = out.map(s=>`
+    <button class="slot" onclick="toggleSlot(this,'${s}')">
+      <span class="d">${s.split(' · ')[0]}</span>
+      <span class="t">${s.split(' · ')[1]}</span>
+    </button>`).join("");
+}
+const cap = s => s.charAt(0).toUpperCase()+s.slice(1);
+
+function toggleSlot(el, val){
+  el.classList.toggle("sel");
+  if(chosenSlots.includes(val)) chosenSlots = chosenSlots.filter(s=>s!==val);
+  else chosenSlots.push(val);
+  validate();
+}
+
+// image handling with resize
+sel("dropZone").addEventListener("click", ()=>sel("fImage").click());
+sel("fImage").addEventListener("change", e=>{
+  const file = e.target.files[0];
+  if(!file) return;
+  const reader = new FileReader();
+  reader.onload = ev=>{
+    const img = new Image();
+    img.onload = ()=>{
+      const max=900, scale=Math.min(1, max/Math.max(img.width,img.height));
+      const cv=document.createElement("canvas");
+      cv.width=img.width*scale; cv.height=img.height*scale;
+      cv.getContext("2d").drawImage(img,0,0,cv.width,cv.height);
+      imageData = cv.toDataURL("image/jpeg",0.7);
+      sel("previewThumb").src=imageData;
+      sel("previewName").textContent=file.name;
+      sel("previewSize").textContent=Math.round(imageData.length/1024)+" KB";
+      sel("imgPreview").classList.add("show");
+      sel("dropZone").style.display="none";
+    };
+    img.src=ev.target.result;
+  };
+  reader.readAsDataURL(file);
+});
+function clearImage(){
+  imageData=null; sel("fImage").value="";
+  sel("imgPreview").classList.remove("show");
+  sel("dropZone").style.display="block";
+}
+
+["fName","fPhone","fMsg"].forEach(id=>sel(id).addEventListener("input",validate));
+sel("fMatch").addEventListener("change",validate);
+
+function validate(){
+  const ok = sel("fName").value.trim() && sel("fPhone").value.trim()
+    && chosenSlots.length>0 && sel("fMatch").checked;
+  sel("submitBtn").disabled = !ok;
+}
+
+async function submitLead(){
+  const cand = {
+    id: "c"+Date.now(),
+    nombre: sel("fName").value.trim(),
+    telefono: sel("fPhone").value.trim(),
+    caso: CASE.shortCode,
+    mensaje: sel("fMsg").value.trim() || "(sin mensaje)",
+    fecha: chosenSlots.join("  /  "),
+    imagen: imageData,
+    estado: "pendiente",
+    createdAt: Date.now()
+  };
+  candidates.unshift(cand);
+  await saveCandidates();
+  sel("formInner").style.display="none";
+  sel("formSuccess").classList.add("show");
+}
+function resetForm(){
+  sel("fName").value=""; sel("fPhone").value=""; sel("fMsg").value="";
+  sel("fMatch").checked=false; clearImage();
+  chosenSlots=[]; document.querySelectorAll(".slot.sel").forEach(s=>s.classList.remove("sel"));
+  validate();
+  sel("formSuccess").classList.remove("show");
+  sel("formInner").style.display="block";
+}
+
+/* ============================================================
+   ADMIN / CRM
+   ============================================================ */
+let filter="all";
+function setFilter(f){
+  filter=f;
+  document.querySelectorAll(".fbtn").forEach(b=>b.classList.toggle("active", b.dataset.f===f));
+  renderAdmin();
+}
+
+function renderAdmin(){
+  const total=candidates.length;
+  const pend=candidates.filter(c=>c.estado==="pendiente").length;
+  const ok=candidates.filter(c=>c.estado==="confirmado").length;
+  sel("stTotal").textContent=total;
+  sel("stPend").textContent=pend;
+  sel("stOk").textContent=ok;
+
+  let list = candidates;
+  if(filter==="pend") list=candidates.filter(c=>c.estado==="pendiente");
+  if(filter==="ok") list=candidates.filter(c=>c.estado==="confirmado");
+  sel("filterCount").textContent = list.length+" de "+total;
+
+  const grid=sel("candGrid");
+  if(list.length===0){
+    grid.innerHTML=`<div class="empty" style="grid-column:1/-1">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M9 11a3 3 0 1 0 0-6 3 3 0 0 0 0 6zM2 21v-2a4 4 0 0 1 4-4h6a4 4 0 0 1 4 4v2"/></svg>
+      <p>No hay candidatos en este filtro todavía.</p></div>`;
+    return;
+  }
+  grid.innerHTML = list.map(c=>{
+    const done = c.estado==="confirmado";
+    const imgPart = c.imagen
+      ? `<img src="${c.imagen}" alt="prueba" />`
+      : ``;
+    return `
+    <div class="cand ${done?'done':''}">
+      <div class="cand-img" ${c.imagen?`onclick="openLightbox('${c.id}')"`:''}>
+        ${imgPart}
+        <span class="casecode mono">${c.caso}</span>
+        ${c.imagen?`<span class="zoom"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m21 21-4-4M11 8v6M8 11h6" stroke-linecap="round"/></svg></span>`:''}
+      </div>
+      <div class="cand-body">
+        <div class="cand-name">
+          <b>${esc(c.nombre)}</b>
+          <span class="badge ${done?'ok':'pend'}">${done?'Confirmado':'Por revisar'}</span>
+        </div>
+        <div class="cand-meta">
+          <div class="mrow date">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18" stroke-linecap="round"/></svg>
+            ${esc(c.fecha)}
+          </div>
+          <div class="mrow">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3 19.5 19.5 0 0 1-6-6 19.8 19.8 0 0 1-3-8.7A2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1 1 .4 1.9.7 2.8a2 2 0 0 1-.5 2.1L8.1 9.9a16 16 0 0 0 6 6l1.3-1.3a2 2 0 0 1 2.1-.4c.9.3 1.8.6 2.8.7a2 2 0 0 1 1.7 2z" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            ${esc(c.telefono)}
+          </div>
+        </div>
+        <div class="cand-msg">"${esc(c.mensaje)}"</div>
+        ${done
+          ? `<div class="cand-confirmed"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M20 6 9 17l-5-5" stroke-linecap="round" stroke-linejoin="round"/></svg> Cita confirmada · mensaje enviado</div>`
+          : `<div class="cand-foot">
+              <button class="btn-confirm" onclick="openModal('${c.id}')">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" style="width:15px;height:15px"><path d="M20 6 9 17l-5-5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                Elegir y confirmar
+              </button>
+            </div>`
+        }
+      </div>
+    </div>`;
+  }).join("");
+}
+
+function esc(s){return (s||"").replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));}
+
+function openLightbox(id){
+  const c=candidates.find(x=>x.id===id);
+  if(!c||!c.imagen) return;
+  sel("lightboxImg").src=c.imagen;
+  sel("lightbox").classList.add("show");
+}
+
+/* ---- confirm flow with WhatsApp prefilled message ---- */
+let pendingId=null;
+function openModal(id){
+  const c=candidates.find(x=>x.id===id);
+  if(!c) return;
+  pendingId=id;
+  const firstSlot=c.fecha.split("  /  ")[0];
+  const msg = `¡Hola ${c.nombre}! Soy Mariana Spiegel 🦷\n\nTu caso fue seleccionado para mi práctica clínica (${CASE.title}).\n\nTe confirmo la cita para: ${firstSlot}.\n\n¿Me confirmas que puedes asistir? ¡Gracias!`;
+  sel("modalTo").textContent="a +507 "+c.telefono;
+  sel("modalMsg").textContent=msg;
+  const phone=c.telefono.replace(/\D/g,"");
+  sel("modalSend").href=`https://wa.me/507${phone}?text=${encodeURIComponent(msg)}`;
+  sel("confirmModal").classList.add("show");
+}
+function closeModal(){ sel("confirmModal").classList.remove("show"); pendingId=null; }
+
+async function finalizeConfirm(){
+  // (the link opens WhatsApp in a new tab; we also mark the candidate confirmed)
+  const c=candidates.find(x=>x.id===pendingId);
+  if(c){ c.estado="confirmado"; await saveCandidates(); }
+  closeModal();
+  renderAdmin();
+  showToast("Cita confirmada con "+(c?c.nombre:"")+" · mensaje listo");
+}
+
+function showToast(msg){
+  sel("toastMsg").textContent=msg;
+  sel("toast").classList.add("show");
+  setTimeout(()=>sel("toast").classList.remove("show"),3200);
+}
+
+/* ============================================================
+   INIT
+   ============================================================ */
+(async function init(){
+  sel("caseCode").textContent=CASE.code;
+  sel("caseTitle").textContent=CASE.title;
+  buildSlots();
+  await loadCandidates();
+})();
+</script>
+</body>
+</html>
